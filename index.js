@@ -37,8 +37,11 @@ function netntlmv2(password, user, domain, proofStr, blob) {
 function isEmptyPassword(formattedHash) {
   const passwordToTry = "";
 
-  let splitted = formattedHash.split(":"),
-    user = splitted[0],
+  let splitted = formattedHash.split(":");
+
+  if (splitted.length < 6) return false
+
+  let user = splitted[0],
     domain = splitted[2],
     challenge = splitted[3],
     targetHash = splitted[4],
@@ -54,7 +57,7 @@ let readStream = fs.createReadStream("hashes.txt");
 var currentData = "";
 readStream.on("data", (buffer) => currentData += buffer);
 readStream.on("end", () => {
-  var splitted = currentData.split("\n");
+  var splitted = currentData.split(/\r\n|\n/g);
 
   for (let part of splitted) {
     if (isEmptyPassword(part)) {
