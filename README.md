@@ -19,3 +19,5 @@ As I haven't got much time to develop this tool, feel free to open an issue or c
 ## Thanks
 
  - Thanks to felipee07 for his repository providing a Python implementation of some parts of the NetNTLMv2 algorithm : https://github.com/felipee07/netNTLMv2
+ - Thanks to the [davenport unofficial documentation](http://davenport.sourceforge.net/ntlm.html) on NTLM, NTLMv2 and NetNTLMv2
+ 
