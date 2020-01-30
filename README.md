@@ -15,3 +15,7 @@ An example `hashes.txt` file is provided in this repository which represents a `
 All contributions are welcome !
 
 As I haven't got much time to develop this tool, feel free to open an issue or create a Pull Request with new features...
+
+## Thanks
+
+ - Thanks to felipee07 for his repository providing a Python implementation of some parts of the NetNTLMv2 algorithm : https://github.com/felipee07/netNTLMv2
