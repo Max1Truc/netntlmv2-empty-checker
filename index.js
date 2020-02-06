@@ -37,14 +37,21 @@ function netntlmv2(password, user, domain, proofStr, blob) {
 function isEmptyPassword(formattedHash) {
   const passwordToTry = "";
 
-  let splitted = formattedHash.split(":"),
-    user = splitted[0],
+  let splitted = formattedHash.split(":");
+  let generatedHash = "";
+
+  if (splitted.length < 6) return false
+
+  let user = splitted[0],
     domain = splitted[2],
     challenge = splitted[3],
     targetHash = splitted[4],
     blob = splitted[5]
 
-  let generatedHash = netntlmv2(passwordToTry, user, domain, challenge, blob)
+  if (targetHash.length == 32)
+    generatedHash = netntlmv2(passwordToTry, user, domain, challenge, blob);
+
+  // TODO: Support NetNTLMv1 (See "http://davenport.sourceforge.net/ntlm.html#theNtlmResponse")
 
   return generatedHash.toUpperCase() === targetHash.toUpperCase()
 }
@@ -54,11 +61,12 @@ let readStream = fs.createReadStream("hashes.txt");
 var currentData = "";
 readStream.on("data", (buffer) => currentData += buffer);
 readStream.on("end", () => {
-  var splitted = currentData.split("\n");
+  console.error("List of accounts with an empty password is being written to STDOUT, separated by a newline ('\\n')")
+  var splitted = currentData.split(/\r\n|\n/);
 
   for (let part of splitted) {
     if (isEmptyPassword(part)) {
-      console.log(part + ":");
+      console.log(part.split(":")[0]);
     }
   }
 });
