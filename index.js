@@ -62,7 +62,7 @@ var currentData = "";
 readStream.on("data", (buffer) => currentData += buffer);
 readStream.on("end", () => {
   console.error("List of accounts with an empty password is being written to STDOUT, separated by a newline ('\\n')")
-  var splitted = currentData.split(/\r\n|\n/);
+  var splitted = currentData.split(/\r\n|\n/g);
 
   for (let part of splitted) {
     if (isEmptyPassword(part)) {
