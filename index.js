@@ -1,72 +1,85 @@
 const fs = require("fs");
-const crypto = require('crypto');
+const { isPasswordCorrect } = require("./netntlmv2");
 
-function toUTF16LE(msg) {
-  // https://www.howtobuildsoftware.com/index.php/how-do/cccl/javascript-php-encoding-utf-8-utf-16-utf-8-to-utf-16le-javascript
-  var byteArray = new Uint8Array(msg.length * 2);
-  for (var i = 0; i < msg.length; i++) {
-    byteArray[i * 2] = msg.charCodeAt(i) // & 0xff;
-    byteArray[i * 2 + 1] = msg.charCodeAt(i) >> 8 // & 0xff;
-  }
-  return byteArray
+function printHelp() {
+	console.log(`Usage: netntlmv2-empty-checker [options] hashfile
+Options:
+  -h, --help         Show this help message and exit
+  -o <file>          Output to file instead of stdout
+  --full             Print full hash lines instead of only usernames
+  -p, --password <pw>  Test this password instead of empty string
+
+Use "-" as hashfile to read from stdin.
+Use "./-" if you really want to read a file named "-".`);
 }
 
-function ntlm(msg) {
-  let hash = crypto.createHash('md4');
-  hash.update(toUTF16LE(msg))
-  return hash.digest("hex")
+let args = process.argv.slice(2);
+let inputFile = "";
+let outputFile = null;
+let outputFull = false;
+let passwordToTry = "";
+
+while (args.length) {
+	let arg = args.shift();
+	if (arg === "-h" || arg === "--help") {
+		printHelp();
+		process.exit(0);
+	} else if (arg === "-o") {
+		outputFile = args.shift();
+	} else if (arg === "--full") {
+		outputFull = true;
+	} else if (arg === "-p" || arg === "--password") {
+		passwordToTry = args.shift() || "";
+	} else if (!inputFile) {
+		inputFile = arg;
+	} else {
+		printHelp();
+		process.exit(1);
+	}
 }
 
-function hmac_md5(password, msg) {
-  let hash = crypto.createHmac('md5', password);
-  hash.update(msg)
-  return hash.digest("hex")
+if (!inputFile) {
+	printHelp();
+	process.exit(1);
 }
 
-function ntlmv2(password, user, domain) {
-  return hmac_md5(Buffer.from(ntlm(password), "hex"), toUTF16LE(user.toUpperCase() + domain))
+function readInput(callback) {
+	if (inputFile === "-") {
+		let data = "";
+		process.stdin.on("data", (chunk) => (data += chunk));
+		process.stdin.on("end", () => callback(data));
+	} else {
+		fs.readFile(inputFile, "utf8", (err, data) => {
+			if (err) {
+				console.error("Error reading input file:", err.message);
+				process.exit(1);
+			}
+			callback(data);
+		});
+	}
 }
 
-function netntlmv2(password, user, domain, proofStr, blob) {
-  var ntlmv2_buffer = Buffer.from(ntlmv2(password, user, domain), "hex")
-  var blockToHmac = Buffer.from(proofStr + blob, "hex")
-  var hashedBlock = hmac_md5(ntlmv2_buffer, blockToHmac)
-  return hashedBlock
-}
-
-function isEmptyPassword(formattedHash) {
-  const passwordToTry = "";
-
-  let splitted = formattedHash.split(":");
-  let generatedHash = "";
-
-  if (splitted.length < 6) return false
-
-  let user = splitted[0],
-    domain = splitted[2],
-    challenge = splitted[3],
-    targetHash = splitted[4],
-    blob = splitted[5]
-
-  if (targetHash.length == 32)
-    generatedHash = netntlmv2(passwordToTry, user, domain, challenge, blob);
-
-  // TODO: Support NetNTLMv1 (See "http://davenport.sourceforge.net/ntlm.html#theNtlmResponse")
-
-  return generatedHash.toUpperCase() === targetHash.toUpperCase()
-}
-
-let readStream = fs.createReadStream("hashes.txt");
-
-var currentData = "";
-readStream.on("data", (buffer) => currentData += buffer);
-readStream.on("end", () => {
-  console.error("List of accounts with an empty password is being written to STDOUT, separated by a newline ('\\n')")
-  var splitted = currentData.split(/\r\n|\n/g);
-
-  for (let part of splitted) {
-    if (isEmptyPassword(part)) {
-      console.log(part.split(":")[0]);
-    }
-  }
+readInput((data) => {
+	const splitted = data.split(/\r\n|\n/g);
+	const results = [];
+	for (let part of splitted) {
+		try {
+		if (isPasswordCorrect(part, passwordToTry)) {
+			results.push(outputFull ? part : part.split(":")[0]);
+		}
+		}catch (e){
+			if (e.code == "ERR_OSSL_EVP_UNSUPPORTED"){
+				console.error("NetNTLMv2 needs MD4, which is an unsecure legacy algorithm.");
+				console.error("Please enable legacy algorithms by running the following command, and then retrying.");
+				console.error(" $ export NODE_OPTIONS=--openssl-legacy-provider");
+				process.exit(1);
+			}
+		}
+	}
+	const output = results.join("\n");
+	if (outputFile) {
+		fs.writeFileSync(outputFile, output + "\n");
+	} else {
+		console.log(output);
+	}
 });

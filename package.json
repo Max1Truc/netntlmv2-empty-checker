@@ -1,0 +1,20 @@
+{
+  "name": "netntlmv2-empty-checker",
+  "version": "1.0.0",
+  "description": "This tool was originally created because hashcat does not permit to crack empty hashes.",
+  "homepage": "https://github.com/Max1Truc/netntlmv2-empty-checker#readme",
+  "bugs": {
+    "url": "https://github.com/Max1Truc/netntlmv2-empty-checker/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Max1Truc/netntlmv2-empty-checker.git"
+  },
+  "license": "MIT",
+  "author": "Max1Truc",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
